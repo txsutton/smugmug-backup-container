@@ -1,3 +1,9 @@
+# Secrets
 .env
+
+# Python Caches
 __pycache__/
+*.py[cod]
+
+# Local Database (Optional, if you want a fresh DB on every new clone)
 sync_state.db
