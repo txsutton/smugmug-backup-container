@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  smugmug-sync:
+    image: smugmug-sync-pro:latest
+    container_name: smugmug_backup
+    env_file: .env
+    environment:
+      - API_KEY=${API_KEY}
+      - API_SECRET=${API_SECRET}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+      - ACCESS_SECRET=${ACCESS_SECRET}
+      - NICKNAME=${NICKNAME}
+    volumes:
+      - /volume2/Photos/smugmug-backup:/data
+    restart: unless-stopped
