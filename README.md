@@ -46,6 +46,20 @@ python authenticate.py
 
 ---
 
+### 🔑 Setup & Security
+
+#### Create your .env File
+To keep your credentials secure, create a file named `.env` in your project root (same folder as the docker-compose file). **Never commit this file to GitHub.**
+
+Add the following to the file:
+```text
+API_KEY=your_key_here
+API_SECRET=your_secret_here
+ACCESS_TOKEN=your_token_here
+ACCESS_SECRET=your_token_secret_here
+NICKNAME=your_smugmug_nickname
+```
+
 ### Deployment
 
 #### 1. Build the Image
@@ -54,18 +68,20 @@ Clone this repo to your server and build your private image:
 docker build -t smugmug-sync-pro:latest .
 ```
 #### 2. Stack Configuration (Portainer / Docker Compose)
-Paste this into your Portainer Stack or docker-compose.yaml. Replace the placeholders with your actual keys.
-```bash
+Paste this into your Portainer Stack or docker-compose.yaml. Replacing Volumes to point to where you wish the files to be copied to
+```yaml
+version: '3.8'
 services:
   smugmug-sync:
     image: smugmug-sync-pro:latest
     container_name: smugmug_backup
+    env_file: .env
     environment:
-      - API_KEY=your_api_key_here
-      - API_SECRET=your_api_secret_here
-      - ACCESS_TOKEN=your_user_token_here
-      - ACCESS_SECRET=your_user_secret_here
-      - NICKNAME=your_smugmug_nickname
+      - API_KEY=${API_KEY}
+      - API_SECRET=${API_SECRET}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+      - ACCESS_SECRET=${ACCESS_SECRET}
+      - NICKNAME=${NICKNAME}
     volumes:
       - /volume2/Photos/smugmug-backup:/data
     restart: unless-stopped
