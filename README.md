@@ -28,7 +28,7 @@ You need **API Keys** (App ID) and **User Tokens** (Your Permission) to run this
 *   Register a new app and copy your **API Key** and **API Secret**.
 
 #### 2. The OAuth Dance (Generate User Tokens)
-Use the included `authenticate.py` utility to link your account.
+Clone this repo to your server and Use the included `authenticate.py` utility to link your account.
 
 ```bash
 # 1. Install requirements
