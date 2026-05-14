@@ -60,7 +60,7 @@ ACCESS_SECRET=your_token_secret_here
 NICKNAME=your_smugmug_nickname
 ```
 
-### Deployment
+### 🚀 Deployment
 
 #### 1. Build the Image
 Clone this repo to your server and build your private image:
@@ -88,7 +88,7 @@ services:
 ```
 ---
 
-### Project Structure
+### 📂 Project Structure
 
 * sync.py - The Engine: Core synchronization and hash verification logic.
 * authenticate.py - The Keymaker: One-time utility for OAuth tokens.
@@ -98,7 +98,7 @@ services:
 
 ---
 
-### Credits & Inspiration
+### ❤️ Credits & Inspiration
 This project was inspired by the [smugmug-bulk-downloader](https://github.com/dannoll/smugmug-bulk-downloader) by dannoll. 
 
 While this version is a ground-up rewrite for Docker-native workflows (introducing SQLite and MD5 verification), the API interaction logic was guided by the original repository's excellent foundation.
