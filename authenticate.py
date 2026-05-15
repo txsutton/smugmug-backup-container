@@ -30,7 +30,8 @@ def authenticate():
         session = service.get_auth_session(rt, rts, data={'oauth_verifier': verifier})
 
         # Write the complete .env file
-        with open(".env", "w") as f:
+        env_path = ".env"
+        with open(env_path, "w") as f:
             f.writelines([
                 f"API_KEY={api_key}\n",
                 f"API_SECRET={api_secret}\n",
@@ -39,7 +40,15 @@ def authenticate():
                 f"NICKNAME={nickname}\n"
             ])
 
+        # Tighten permissions so the credentials aren't world-readable.
+        # No-op on Windows where chmod has limited effect, harmless to try.
+        try:
+            os.chmod(env_path, 0o600)
+        except OSError:
+            pass
+
         print("\n✅ SUCCESS: .env file has been fully generated!")
+        print("   Treat this file like a password. Do not commit it.")
         print("You can now build and run your Docker container.")
         
     except Exception as e:

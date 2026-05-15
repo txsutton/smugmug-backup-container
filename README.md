@@ -1,113 +1,220 @@
-# 📸 SmugMug Professional Docker Sync
+# 📸 SmugMug Docker Sync
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
-A high-performance, hash-verified backup solution for SmugMug. Optimized for **Asustor, Synology, and Unraid** NAS environments.
+A hash-verified backup tool for SmugMug, designed to run in Docker on a NAS
+(Asustor, Synology, Unraid) or any Linux/macOS/Windows host. Downloads the
+original archived versions of every photo, mirrors your folder/album
+structure on disk, and resumes cleanly after interruptions.
 
 ---
 
-### 🌟 Key Features
+## Features
 
-| Feature | Description |
-| :--- | :--- |
-| **MD5 Verification** | Detects corrupted or partial downloads and auto-repairs them. |
-| **SQLite Engine** | Persistent state tracking for near-instant resume and sync. |
-| **Docker-Native** | Headless execution—perfect for scheduled tasks or background services. |
-| **Secure by Design** | Zero-footprint credentials; uses Environment Variables only. |
-| **Smart Mirroring** | Recreates your SmugMug folder/album hierarchy locally. |
+- **MD5-verified downloads** with atomic write (`.part` then rename) so
+  partial files never masquerade as good ones.
+- **SQLite state DB** for near-instant resume; only changed/new photos are
+  downloaded on subsequent runs.
+- **`--verify` and `--repair` modes** for periodic bit-rot checks against
+  the local copies, no SmugMug calls required.
+- **Robust HTTP layer** with retries on 429/5xx, exponential backoff,
+  `Retry-After` honored.
+- **Path-traversal hardened** filename sanitization safe for Windows, macOS
+  and Linux. Case-insensitive collisions in the same album are
+  automatically disambiguated.
+- **Non-root container**, read-only root filesystem, secrets via env vars only.
+- **Graceful shutdown** on Ctrl+C / SIGTERM (queued downloads cancelled,
+  in-flight `.part` files cleaned up on next run).
 
 ---
 
-### 🔑 Getting Your Credentials
+## Getting your credentials
 
-You need **API Keys** (App ID) and **User Tokens** (Your Permission) to run this tool.
+You need a SmugMug **API key + secret** (your "app") and an **access token +
+secret** (permission for that app to read your account).
 
-#### 1. Create your SmugMug App
-*   Log into the [SmugMug API Dashboard](https://api.smugmug.com/api/v2/apps).
-*   Register a new app and copy your **API Key** and **API Secret**.
+### 1. Register an app
 
-#### 2. The OAuth Dance (Generate User Tokens)
-Clone this repo to your server and Use the included `authenticate.py` utility to link your account.
+Sign in at [SmugMug API Keys](https://api.smugmug.com/api/v2/apps), create a new
+app, and note the API Key and API Secret. Read access is enough.
 
-```bash
-# 1. Install requirements
-pip install rauth
+### 2. Run the OAuth helper
 
-# 2. Run the generator
+`authenticate.py` walks you through the OAuth1 PIN flow and writes a complete
+`.env` file in the current directory.
+
+```powershell
+# Windows / PowerShell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 python authenticate.py
 ```
 
-#### The Authentication Process:
-1. Enter Keys: Input your API Key and Secret when prompted by the script.
-2. Authorize: Open the generated URL in your browser and click Authorize.
-3. Enter PIN: Paste the 6-digit PIN provided by SmugMug back into your terminal.
-4. Save Tokens: Copy the USER_TOKEN and USER_SECRET provided at the end. Keep these secret!
-
----
-
-### 🔑 Setup & Security
-
-#### Create your .env File
-To keep your credentials secure, create a file named `.env` in your project root (same folder as the docker-compose file). **Never commit this file to GitHub.**
-
-Add the following to the file:
-```text
-API_KEY=your_key_here
-API_SECRET=your_secret_here
-ACCESS_TOKEN=your_token_here
-ACCESS_SECRET=your_token_secret_here
-NICKNAME=your_smugmug_nickname
-```
-
-### 🚀 Deployment
-
-#### 1. Build the Image
-Clone this repo to your server and build your private image:
 ```bash
-docker build -t smugmug-sync-pro:latest .
+# Linux / macOS
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python authenticate.py
 ```
-#### 2. Stack Configuration (Portainer / Docker Compose)
-Paste this into your Portainer Stack or docker-compose.yaml. Replacing Volumes to point to where you wish the files to be copied to
-```yaml
-version: '3.8'
-services:
-  smugmug-sync:
-    image: smugmug-sync-pro:latest
-    container_name: smugmug_backup
-    read_only: true  # <--- Locks the container filesystem
-    tmpfs:
-      - /tmp         # <--- Gives Python a place for temporary files
-    env_file: .env
-    environment:
-      - API_KEY=${API_KEY}
-      - API_SECRET=${API_SECRET}
-      - ACCESS_TOKEN=${ACCESS_TOKEN}
-      - ACCESS_SECRET=${ACCESS_SECRET}
-      - NICKNAME=${NICKNAME}
-      - PYTHONDONTWRITEBYTECODE=1 # <--- Prevents writing .pyc files
-    volumes:
-      - /volume2/Photos/smugmug-backup:/data
-    restart: unless-stopped
+
+You'll be prompted for the API key, secret, and your SmugMug nickname (the URL
+slug, e.g. `https://<nickname>.smugmug.com/`). The script then prints a SmugMug
+authorization URL; open it, click Authorize, and paste the 6-digit PIN back into
+the terminal. On success a `.env` file is written and chmod'd to 600 on POSIX.
+
+> Treat `.env` like a password. It's already in `.gitignore`. Don't commit it.
+
+---
+
+## Configuration
+
+| Variable        | Required | Purpose                                                      |
+| --------------- | :------: | ------------------------------------------------------------ |
+| `API_KEY`       |    ✓     | Your SmugMug app key.                                        |
+| `API_SECRET`    |    ✓     | Your SmugMug app secret.                                     |
+| `ACCESS_TOKEN`  |    ✓     | OAuth access token for your account (from `authenticate.py`).|
+| `ACCESS_SECRET` |    ✓     | OAuth access token secret.                                   |
+| `NICKNAME`      |    ✓     | Your SmugMug URL slug (the part before `.smugmug.com`).      |
+| `DATA_DIR`      |          | Output directory. Defaults to `/data` (the container mount). Override for local testing. |
+
+---
+
+## Run with Docker (recommended)
+
+### 1. Build the image
+
+```bash
+docker build -t smugmug-sync:latest .
 ```
+
+### 2. Run with docker compose
+
+Edit the `volumes:` line in [`stack-docker-compose.yaml`](./stack-docker-compose.yaml)
+to point at where you want the photos saved, then:
+
+```bash
+docker compose -f stack-docker-compose.yaml up
+```
+
+The container will sync, print a summary, and exit. `restart: on-failure:3`
+ensures it retries a few times on transient failures but doesn't loop forever.
+
+### 3. Run the integrity check
+
+```bash
+docker compose -f stack-docker-compose.yaml run --rm smugmug-sync --verify
+```
+
+Or to also auto-delete corrupted local copies and queue them for re-download
+on the next sync:
+
+```bash
+docker compose -f stack-docker-compose.yaml run --rm smugmug-sync --repair
+```
+
+### Matching your NAS user (optional)
+
+The container runs as UID 1000 by default, which lines up with most desktop
+Linux installs. Synology users typically need a higher UID (often 1024-1030).
+Find your UID with `id -u` on the NAS, then run:
+
+```bash
+docker run --rm \
+  --user $(id -u):$(id -g) \
+  --env-file .env \
+  -v /volume2/Photos/smugmug-backup:/data \
+  smugmug-sync:latest
+```
+
+Or set `user: "1024:1024"` (or whatever your IDs are) in `stack-docker-compose.yaml`.
+
 ---
 
-### 📂 Project Structure
+## Run without Docker (local testing)
 
-* sync.py - The Engine: Core synchronization and hash verification logic.
-* authenticate.py - The Keymaker: One-time utility for OAuth tokens.
-* Dockerfile - The Blueprint: Instructions for the slim Python environment.
-* requirements.txt - The Logic: Python library dependencies.
-* stack-docker-compose.yaml - The Recipe: Deployment template for Portainer.
+Useful for quick iteration or running on the host directly.
+
+```powershell
+# Windows / PowerShell
+.venv\Scripts\Activate.ps1
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^\s*([^#=]+?)\s*=\s*(.*)\s*$') {
+        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+    }
+}
+$env:DATA_DIR = "$pwd\test-data"
+python sync.py
+```
+
+```bash
+# Linux / macOS
+source .venv/bin/activate
+set -a; source .env; set +a
+export DATA_DIR="$PWD/test-data"
+python sync.py
+```
 
 ---
 
-### ❤️ Credits & Inspiration
-This project was inspired by the [smugmug-bulk-downloader](https://github.com/dannoll/smugmug-bulk-downloader) by dannoll. 
+## CLI
 
-While this version is a ground-up rewrite for Docker-native workflows (introducing SQLite and MD5 verification), the API interaction logic was guided by the original repository's excellent foundation.
+```
+python sync.py            # full sync (default)
+python sync.py --verify   # offline integrity check, exit 0 if all OK, 1 otherwise
+python sync.py --repair   # implies --verify; deletes bad files and DB rows so the next sync re-downloads them
+```
+
+The full sync also runs an automatic cleanup of orphan `.part` files
+left behind by previous interruptions.
 
 ---
 
-### License
-Distributed under the MIT License.
+## Suggested cron / scheduled task
+
+- **Daily**: `python sync.py` (or run the container) to pick up new photos.
+- **Weekly or monthly**: `python sync.py --verify` to detect bit rot.
+  If it finds anything, run `--repair` then a normal sync to fix.
+
+---
+
+## Project structure
+
+```
+sync.py                        Main sync engine and CLI (--verify / --repair).
+authenticate.py                One-time OAuth helper that writes .env.
+Dockerfile                     Slim Python image, non-root user.
+stack-docker-compose.yaml      Compose template for Portainer / docker compose.
+.dockerignore                  Keeps secrets and test data out of built images.
+requirements.txt               Python dependencies.
+```
+
+---
+
+## Security notes
+
+- Credentials are never logged, never written to disk except in `.env`,
+  and never sent anywhere except `api.smugmug.com`.
+- All file paths are sanitized and confined to `DATA_DIR`. SmugMug filenames
+  containing `..`, path separators, Windows-illegal characters, or device
+  names like `CON`/`NUL` are rewritten before use.
+- HTTP downloads validate Content-Type and reject HTML responses (defense
+  in depth against unsigned redirects to login pages).
+- See [SECURITY.md](./SECURITY.md) for vulnerability reporting.
+
+---
+
+## Credits
+
+Inspired by [smugmug-bulk-downloader](https://github.com/dannoll/smugmug-bulk-downloader)
+by dannoll. The API navigation patterns were guided by that project; the
+present implementation is an independent rewrite focused on Docker, integrity
+verification, and resume.
+
+---
+
+## License
+
+MIT, see [LICENSE](./LICENSE).

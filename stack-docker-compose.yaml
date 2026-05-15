@@ -1,19 +1,15 @@
-version: '3.8'
 services:
   smugmug-sync:
     image: smugmug-sync-pro:latest
     container_name: smugmug_backup
-    read_only: true  # <--- Locks the container filesystem
+    read_only: true        # Locks the container filesystem
     tmpfs:
-      - /tmp         # <--- Gives Python a place for temporary files
-    env_file: .env
+      - /tmp               # Gives Python a place for temporary files
+    env_file: .env         # Loads API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET, NICKNAME
     environment:
-      - API_KEY=${API_KEY}
-      - API_SECRET=${API_SECRET}
-      - ACCESS_TOKEN=${ACCESS_TOKEN}
-      - ACCESS_SECRET=${ACCESS_SECRET}
-      - NICKNAME=${NICKNAME}
-      - PYTHONDONTWRITEBYTECODE=1 # <--- Prevents writing .pyc files
+      - PYTHONDONTWRITEBYTECODE=1
     volumes:
       - /volume2/Photos/smugmug-backup:/data
-    restart: unless-stopped
+    # sync.py is a batch job that exits when done.
+    # Only restart on unexpected failures, and cap retries so we don't hammer the API.
+    restart: on-failure:3
