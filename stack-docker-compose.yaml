@@ -5,7 +5,7 @@ services:
     read_only: true        # Locks the container filesystem
     tmpfs:
       - /tmp               # Gives Python a place for temporary files
-    env_file: .env         # Loads API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET, NICKNAME
+    env_file: stack.env         # Loads API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET, NICKNAME
     environment:
       - PYTHONDONTWRITEBYTECODE=1
     volumes:

@@ -29,8 +29,8 @@ def authenticate():
     try:
         session = service.get_auth_session(rt, rts, data={'oauth_verifier': verifier})
 
-        # Write the complete .env file
-        env_path = ".env"
+        # Write the complete stack.env file
+        env_path = "stack.env"
         with open(env_path, "w") as f:
             f.writelines([
                 f"API_KEY={api_key}\n",
@@ -47,7 +47,7 @@ def authenticate():
         except OSError:
             pass
 
-        print("\n✅ SUCCESS: .env file has been fully generated!")
+        print("\n✅ SUCCESS: stack.env file has been fully generated!")
         print("   Treat this file like a password. Do not commit it.")
         print("You can now build and run your Docker container.")
         

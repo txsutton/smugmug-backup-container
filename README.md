@@ -117,7 +117,7 @@ docker compose -f stack-docker-compose.yaml run --rm smugmug-sync --repair
 
 ### Matching your NAS user (optional)
 
-The container runs as UID 1000 by default, which lines up with most desktop
+The container runs as UID 1002 by default, which lines up with most desktop
 Linux installs. Synology users typically need a higher UID (often 1024-1030).
 Find your UID with `id -u` on the NAS, then run:
 
@@ -129,7 +129,7 @@ docker run --rm \
   smugmug-sync:latest
 ```
 
-Or set `user: "1024:1024"` (or whatever your IDs are) in `stack-docker-compose.yaml`.
+Or set `user: "1002:1002"` (or whatever your IDs are) in `stack-docker-compose.yaml`.
 
 ---
 

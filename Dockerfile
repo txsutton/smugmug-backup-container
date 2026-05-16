@@ -17,11 +17,11 @@ COPY sync.py .
 # owned by a predictable UID (1000 matches the default user on most NAS
 # systems and Linux desktops). Override at run time with `--user <uid>:<gid>`
 # if you need to match a different host UID.
-RUN groupadd --system --gid 1000 app \
- && useradd  --system --uid 1000 --gid app --no-create-home --shell /usr/sbin/nologin app \
+RUN groupadd --system --gid 1002 smugmug-backup \
+ && useradd  --system --uid 1002 --gid smugmug-backup --no-create-home --shell /usr/sbin/nologin smugmug-backup \
  && mkdir -p /data \
- && chown -R app:app /app /data
-USER app
+ && chown -R smugmug-backup:smugmug-backup /app /data
+USER smugmug-backup
 
 # /data is a mount point for the bind-mounted backup directory.
 VOLUME ["/data"]
