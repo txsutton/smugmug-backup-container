@@ -1,5 +1,6 @@
 # Secrets
 .env
+stack.env
 
 # Python Caches
 __pycache__/
